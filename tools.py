@@ -130,7 +130,7 @@ def get_missing_value(df,afficher_pourcentage,afficher_heatmap):
     print(f"Nombre total de données manquantes dans le dataframe : {nb_na} données manquantes sur {nb_data_tt} ({pourcent_na_tt}%)")
     print("-------------------------------------------------------------")
     
-    # Affiuchage du nombre et du pourcentage de valeurs manquantes par variable
+    # Affichage du nombre et du pourcentage de valeurs manquantes par variable
     if afficher_pourcentage:
         print("Nombre et pourcentage de valeurs manquantes par variable\n")
         values = df.isnull().sum()
@@ -152,3 +152,27 @@ def get_missing_value(df,afficher_pourcentage,afficher_heatmap):
         plt.show()
         
 # ------------------------------------------------------------------------
+def graph_NAN(data,seuil_na=20,debut=1,fin=50,title='titre'):
+    """ Permet de mieux visualiser les % de NaN sur un nombre de colonne limité
+    Parametres
+    ----------
+    @param IN : df : dataframe
+                seuil : visualiser un ligne de seuil
+                debut : indice de la colonne de début de l'intervalle
+                fin   : indice de la dernière colonne a prendre en compte
+
+    """
+    plt.figure(figsize=(16,10))
+    df=data.iloc[:,debut:fin]
+    ax = plt.subplot(1,1,1)
+    perc = (df.isnull().sum()/df.shape[0])*100
+    
+    ax = sns.barplot(x=df.columns,y=perc,color='steelBlue')
+    if seuil_na != False:
+        plt.axhline(y=seuil_na, color='r', linestyle='-')
+    ax.set_title(title,fontsize=20, weight='bold')
+    ax.set_xlabel('Colonnes',fontsize=20)
+    ax.set_ylabel('% de NaN',fontsize=20)
+    ax.set_xticklabels(df.columns,rotation=90)
+    
+plt.show()
