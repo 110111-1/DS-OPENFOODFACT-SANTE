@@ -12,79 +12,80 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from IPython.display import display
 
-
 # ---------------------------------------------------------------------------
-# -- VALEURS MANQUANTES
+# -- DESCRIPTION DU JEU DE DONNEES
 # ---------------------------------------------------------------------------
 
-# Afficher des informations sur les valeurs manquantes
-
-
-def get_missing_values(df_work, pourcentage, affiche_heatmap):
-    """Indicateurs sur les variables manquantes
-       @param in : df_work dataframe obligatoire
-                   pourcentage : boolean si True affiche le nombre heatmap
-                   affiche_heatmap : boolean si True affiche la heatmap
-       @param out : none
-    """
-
-    # 1. Nombre de valeurs manquantes totales
-    nb_nan_tot = df_work.isna().sum().sum()
-    nb_donnees_tot = np.product(df_work.shape)
-    pourc_nan_tot = round((nb_nan_tot / nb_donnees_tot) * 100, 2)
+def get_info_data(df):
+    print("------------------------------------------------------------------")
+    print(f"LES DONNES \n")
+    print("Nombre de lignes :", df.shape[0], "lignes")
+    print("Nombre de colonnes :", df.shape[1], "colonnes")
+    # Recherche de doublon
     print(
-        f'Valeurs manquantes :{nb_nan_tot} NaN pour {nb_donnees_tot} données ({pourc_nan_tot} %)')
+        f"Nombre d'éléments dupliqués dans le dataframe : {df.duplicated().sum()} eléments"
+    )
+    nb_na = df.isnull().sum().sum()
+    if nb_na > 0:
+        nb_data_tt = np.product(df.shape)
+        pourcent_na_tt = round((nb_na / nb_data_tt) * 100, 2)
+        print(
+            f"Nombre total de données manquantes dans le dataframe : {nb_na} données manquantes sur {nb_data_tt} ({pourcent_na_tt}%)"
+        )
+    else:
+        print("Aucune valeur manquante")
 
-    if pourcentage:
-        print("-------------------------------------------------------------")
-        print("Nombre et pourcentage de valeurs manquantes par variable\n")
-        # 2. Visualisation du nombre et du pourcentage de valeurs manquantes
-        # par variable
-        values = df_work.isnull().sum()
-        percentage = 100 * values / len(df_work)
-        table = pd.concat([values, percentage.round(2)], axis=1)
-        table.columns = [
-            'Nombres de valeurs manquantes',
-            '% de valeurs manquantes']
-        display(table[table['Nombres de valeurs manquantes'] != 0]
-                .sort_values('% de valeurs manquantes', ascending=False)
-                .style.background_gradient('seismic'))
+# ---------------------------------------------------------------------------
 
-    if affiche_heatmap:
-        print("-------------------------------------------------------------")
-        print("Heatmap de visualisation des valeurs manquantes")
-        # 3. Heatmap de visualisation des valeurs manquantes
-        plt.figure(figsize=(20, 10))
-        sns.heatmap(df_work.isna(), cbar=False)
-        plt.show()
+def get_description_variables(dataframe, type_var='all'):
+    """
+    Fonction qui retourne la description des variables qualitatives, quantitatives ou les deux
+    Entrées
+    Paramettres
+    ----------
+    @param IN :
+        - dataframe
+        - type_var = 'all'   : tous les types de variable
+                     'categ' : type categorie / labelle
+                     'num'   : type numérique
+    Sortie : description des variables
+    """
+    if type_var == 'num':
+        res = dataframe.describe()
+    elif type_var == 'categ':
+        res = dataframe.describe(exclude=[np.number])
+    else:
+        res = dataframe.describe(include='all')
+
+    return res.T
+
 # --------------------------------------------------------------------
 # -- TYPES DES VARIABLES
 # --------------------------------------------------------------------
 
-
-def get_types_variables(df_work, types, type_par_var, graph):
+def get_types_variables(dataframe, types, type_par_var, graph):
     """ Permet un aperçu du type des variables
-    Parameters
+    Parametres
     ----------
-    @param IN : df_work : dataframe, obligatoire
-                types : Si True lance dtypes, obligatoire
-                type_par_var : Si True affiche tableau des types de
+    @param IN : - dataframe
+                - types : Si True lance dtypes, obligatoire
+                - type_par_var : Si True affiche tableau des types de
                                chaque variable, obligatoire
-                graph : Si True affiche pieplot de répartition des types
-    @param OUT :None.
+                - graph : Si True affiche pieplot de répartition des types
+
     """
 
     if types:
         # 1. Type des variables
         print("-------------------------------------------------------------")
         print("Type de variable pour chacune des variables\n")
-        display(df_work.dtypes)
+        display(dataframe.dtypes)
 
     if type_par_var:
         # 2. Compter les types de variables
         print("\n----------------------------------------------------------")
         print("Répartition des types de variable\n")
-        values = df_work.dtypes.value_counts()
+        values = dataframe.dtypes.value_counts()
         nb_tot = values.sum()
         percentage = round((100 * values / nb_tot), 2)
         table = pd.concat([values, percentage], axis=1)
@@ -98,11 +99,56 @@ def get_types_variables(df_work, types, type_par_var, graph):
     if graph:
         # 3. Schéma des types de variable
         # print("\n----------------------------------------------------------")
-        # Répartition des types de variables        
-        plt.pie(x = df_work.dtypes.value_counts(),
-        labels = df_work.dtypes.value_counts().index,
+        # Répartition des types de variables
+        plt.pie(x = dataframe.dtypes.value_counts(),
+        labels = dataframe.dtypes.value_counts().index,
         shadow=True,
         autopct='%1.1f%%',
         explode=[0,0.1])
         # plt.title('Répartion des types de variables',fontweight='bold')
         plt.show()
+
+# ---------------------------------------------------------------------------
+# -- VALEURS MANQUANTES
+# ---------------------------------------------------------------------------
+
+# On crée une fonction
+def get_missing_value(df,afficher_pourcentage,afficher_heatmap):
+    """ Permet un aperçu du type des variables
+    Parametres
+    ----------
+    @param IN : df_work : dataframe, obligatoire
+                types : Si True lance dtypes, obligatoire
+                type_par_var : Si True affiche tableau des types de
+                               chaque variable, obligatoire
+                graph : Si True affiche pieplot de répartition des types
+
+    """
+    nb_na = df.isnull().sum().sum()
+    nb_data_tt = np.product(df.shape)
+    pourcent_na_tt = round((nb_na / nb_data_tt) * 100, 2)
+    print(f"Nombre total de données manquantes dans le dataframe : {nb_na} données manquantes sur {nb_data_tt} ({pourcent_na_tt}%)")
+    print("-------------------------------------------------------------")
+    
+    # Affiuchage du nombre et du pourcentage de valeurs manquantes par variable
+    if afficher_pourcentage:
+        print("Nombre et pourcentage de valeurs manquantes par variable\n")
+        values = df.isnull().sum()
+        percentage = 100 * values / len(df)
+        table = pd.concat([values, percentage.round(2)], axis=1)
+        table.columns = [
+            'Nombres de valeurs manquantes',
+            '% de valeurs manquantes']
+        display(table[table['Nombres de valeurs manquantes'] != 0]
+                .sort_values('% de valeurs manquantes', ascending=False)
+                .style.background_gradient('YlOrRd'))
+    print("------------------------------------------------------------------")
+    # Vusualisation des données manquantes
+    if afficher_heatmap:
+        print("Visualisation des données manquantes")
+        plt.figure(figsize=(20, 10))
+        plt.title("Visualisation des valeurs manquantes")
+        sns.heatmap(df.isna(), cbar=False)
+        plt.show()
+        
+# ------------------------------------------------------------------------
