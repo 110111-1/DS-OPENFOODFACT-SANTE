@@ -176,3 +176,19 @@ def graph_NAN(data,seuil_na=20,debut=1,fin=50,title='titre'):
     ax.set_xticklabels(df.columns,rotation=90)
     
 plt.show()
+
+# ------------------------------------------------------------------------
+def get_null_factor(df, tx_threshold):
+    """ Permet de choisir et visualiser les taux de NaN 
+    Parametres
+    ----------
+        @param IN : df           : dataframe
+                    tx-threshold : = seuil : visualiser un ligne de seuil
+
+    """ 
+    null_rate = ((df.isnull().sum() / df.shape[0])*100).sort_values(ascending=False).reset_index()
+    null_rate.columns = ['Variables','Taux_de_Null']
+    high_null_rate = null_rate[null_rate.Taux_de_Null >= tx_threshold]
+    return high_null_rate
+
+# ------------------------------------------------------------------------
