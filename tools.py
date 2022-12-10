@@ -4,7 +4,7 @@ Created on Fri Nov 25 11:48:44 2022
 
 Nettoyer les données Openclassrooms 
 
-@author: tomy
+@author: Philippe Moty
 """
 import pandas as pd
 import numpy as np
@@ -16,24 +16,20 @@ from IPython.display import display
 # -- DESCRIPTION DU JEU DE DONNEES
 # ---------------------------------------------------------------------------
 
-def get_info_data(df):
+def get_info_data(df,doublon):
+    """
+    Fonction qui affiche la taille et le nombre de doublon du dataset
+    """
     print("------------------------------------------------------------------")
-    print(f"LES DONNES \n")
+    print(f"Taille du jeu de données \n")
     print("Nombre de lignes :", df.shape[0], "lignes")
     print("Nombre de colonnes :", df.shape[1], "colonnes")
-    # Recherche de doublon
-    print(
-        f"Nombre d'éléments dupliqués dans le dataframe : {df.duplicated().sum()} eléments"
-    )
-    nb_na = df.isnull().sum().sum()
-    if nb_na > 0:
-        nb_data_tt = np.product(df.shape)
-        pourcent_na_tt = round((nb_na / nb_data_tt) * 100, 2)
+    if doublon:
+        # Recherche de doublon
         print(
-            f"Nombre total de données manquantes dans le dataframe : {nb_na} données manquantes sur {nb_data_tt} ({pourcent_na_tt}%)"
+            f"Nombre d'éléments dupliqués dans le dataframe : {df.duplicated().sum()} eléments"
         )
-    else:
-        print("Aucune valeur manquante")
+    print("------------------------------------------------------------------")
 
 # ---------------------------------------------------------------------------
 
@@ -46,7 +42,7 @@ def get_description_variables(dataframe, type_var='all'):
     @param IN :
         - dataframe
         - type_var = 'all'   : tous les types de variable
-                     'categ' : type categorie / labelle
+                     'categ' : type categorie / label
                      'num'   : type numérique
     Sortie : description des variables
     """
