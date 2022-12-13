@@ -99,10 +99,14 @@ def get_types_variables(dataframe, types, type_par_var, graph):
         plt.pie(x = dataframe.dtypes.value_counts(),
         labels = dataframe.dtypes.value_counts().index,
         shadow=True,
-        autopct='%1.1f%%',
-        explode=[0,0.1])
+        autopct='%1.1f%%'
+        # explode=[0,0.1]
+        )
         # plt.title('Répartion des types de variables',fontweight='bold')
         plt.show()
+
+# ----------------------------------------------------------------------------
+
 
 # ---------------------------------------------------------------------------
 # -- VALEURS MANQUANTES
@@ -166,6 +170,10 @@ def graph_NAN(data,seuil_na=20,debut=1,fin=50,title='titre'):
     ax = sns.barplot(x=df.columns,y=perc,color='steelBlue')
     if seuil_na != False:
         plt.axhline(y=seuil_na, color='r', linestyle='-')
+        plt.text(len(df.isnull().sum()/len(df))/1.7, seuil_na+5, 
+                 'Colonnes avec plus de %s%s missing values' %( seuil_na, '%'), 
+                 fontsize=12,weight='bold', color='crimson', ha='left' ,va='top')
+
     ax.set_title(title,fontsize=20, weight='bold')
     ax.set_xlabel('Colonnes',fontsize=20)
     ax.set_ylabel('% de NaN',fontsize=20)
@@ -182,9 +190,93 @@ def get_null_factor(df, tx_threshold):
                     tx-threshold : = seuil : visualiser un ligne de seuil
 
     """ 
-    null_rate = ((df.isnull().sum() / df.shape[0])*100).sort_values(ascending=False).reset_index()
+    #null_rate = ((df.isnull().sum() / df.shape[0])*100).sort_values(ascending=False).reset_index()
+    null_rate = ((df.isnull().mean()*100)).sort_values(ascending=False).reset_index()
     null_rate.columns = ['Variables','Taux_de_Null']
     high_null_rate = null_rate[null_rate.Taux_de_Null >= tx_threshold]
     return high_null_rate
 
 # ------------------------------------------------------------------------
+
+def search_componant(df, suffix='_100g'):
+    """ Permet d'isoler les données suffixé par _100g à mettre a zero si nan
+    
+    Parametre
+    ----------
+    df     : 
+    suffix : 
+        DESCRIPTION. The default is '_100g'.
+    Sortie les élémentsuffixé par _100g
+
+    """
+    componant = [] 
+    for col in df.columns:
+         if '_100g' in col: componant.append(col)
+         df_subset_columns = df[componant]
+    return df_subset_columns
+
+# ---------------------------------------------------------------------------
+# -- INFORMATION SUR LES COLONNES
+# ---------------------------------------------------------------------------
+def info_colonne(df,colonne):
+    '''
+    Présente les informations sur la colonne : unique, nunique, na%
+    parametres
+    - df 
+    - colonne 'ma_colonne'
+    - nb_max : nombre qui permet de limiter l'affichage si trop élevé
+    '''
+    df_work = df[colonne]
+    print(f"Colonne : {colonne}")
+    print(f"________")
+    print(f"Nombre de valeurs uniques : {df_work.nunique()}")
+    print(f"NaN : {round(df_work.isnull().mean()*100,2)} %")
+    print("--------")
+    print("Les valeurs contenues dans la colonne")
+    print(f"{df_work.unique()}")
+
+# ---------------------------------------------------------------------------
+def info_colonne_df_col_nb_max(df,colonne,nb_max):
+    '''
+    Présente les informations sur la colonne : unique, nunique, na%
+    parametres
+    - df 
+    - colonne 'ma_colonne'
+    - nb_max : nombre qui permet de limiter l'affichage si trop élevé
+    '''
+    df_work = df[colonne]
+    print(f"Colonne : {colonne}")
+    print("________")
+    print(f"Nombre de valeurs uniques : {df_work.nunique()}")
+    print(f"NaN : {round(df_work.isnull().mean()*100,2)} %")
+    if df_work.nunique()<nb_max:
+        print("--------")
+        print("Les valeurs contenues dans la colonne")
+        df_work.unique()
+    elif df_work.nunique()>nb_max:
+        print("Le nombre de valeur unique contenu dans cette colonne est supérieur au nb_max renseigné")
+
+# ---------------------------------------------------------------------------
+def info_list_colonnes(df,liste_col):
+    '''
+    '''
+    for i in liste_col:
+        
+        df_work = df[i]
+        print("________")
+        print(f"Colonne : {i}")
+        print(f"Nombre de valeurs uniques : {df_work.nunique()}")
+        print(f"Type de la variable       : {df[i].dtypes}")
+        print(f"NaN                       : {round(df_work.isnull().mean()*100,2)} %")
+        print(f"Valeurs unique            : {df[i].unique()}")
+        print("")
+    
+    
+
+# ---------------------------------------------------------------------------
+
+
+# ---------------------------------------------------------------------------
+
+
+# ---------------------------------------------------------------------------
