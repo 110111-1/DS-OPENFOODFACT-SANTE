@@ -275,7 +275,24 @@ def info_list_colonnes(df,liste_col):
 
 # ---------------------------------------------------------------------------
 
-
+# --------------------------------------------------------------------
+# -- SUPRESSION VARIABLES SELON LE TAUX DE NAN (EN %)
+# --------------------------------------------------------------------
+def suppression_variable_seuil_taux_nan(dataframe, seuil):
+    """
+    Supprime les variables à partir d'un taux en % de nan.
+    
+    """
+    df_app_nan = round(
+        (dataframe.isna().sum() / dataframe.shape[0]) * 100, 2)
+    cols = dataframe.columns.tolist()
+    
+    cols_a_garder = df_app_nan[df_app_nan.values < seuil].index.tolist()
+    cols_supprimees = [col for col in cols if col not in cols_a_garder]
+    dataframe = dataframe[cols_a_garder]
+    print(f'Liste des variables éliminées :\n{cols_supprimees}\n')
+    print(f'Liste des variables conservées :\n{cols_a_garder}')
+    return dataframe
 # ---------------------------------------------------------------------------
 
 
