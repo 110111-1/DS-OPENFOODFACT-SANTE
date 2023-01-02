@@ -16,21 +16,16 @@ from IPython.display import display
 # -- DESCRIPTION DU JEU DE DONNEES
 # ---------------------------------------------------------------------------
 
-def get_info_data(df,doublon):
+def get_info_data(df):
     """
-    Fonction qui affiche la taille et le nombre de doublon du dataset
+    Fonction qui affiche la taille du dataset
     """
     print("------------------------------------------------------------------")
-    print(f"Taille du jeu de données \n")
+    print("Taille du jeu de données \n")
     print("Nombre de lignes :", df.shape[0], "lignes")
     print("Nombre de colonnes :", df.shape[1], "colonnes")
-    if doublon:
-        # Recherche de doublon
-        print(
-            f"Nombre d'éléments dupliqués dans le dataframe : {df.duplicated().sum()} eléments"
-        )
     print("------------------------------------------------------------------")
-
+    
 # ---------------------------------------------------------------------------
 
 def get_description_variables(dataframe, type_var='all'):
@@ -152,7 +147,7 @@ def get_missing_value(df,afficher_pourcentage,afficher_heatmap):
         plt.show()
         
 # ------------------------------------------------------------------------
-def graph_NAN(data,seuil_na=20,debut=1,fin=50,title='titre'):
+def graph_NAN_with_start_end(data,seuil_na=20,debut=1,fin=50,title='titre'):
     """ Permet de mieux visualiser les % de NaN sur un nombre de colonne limité
     Parametres
     ----------
@@ -164,6 +159,34 @@ def graph_NAN(data,seuil_na=20,debut=1,fin=50,title='titre'):
     """
     plt.figure(figsize=(16,10))
     df=data.iloc[:,debut:fin]
+    ax = plt.subplot(1,1,1)
+    perc = (df.isnull().sum()/df.shape[0])*100
+    
+    ax = sns.barplot(x=df.columns,y=perc,color='steelBlue')
+    if seuil_na != False:
+        plt.axhline(y=seuil_na, color='r', linestyle='-')
+        plt.text(len(df.isnull().sum()/len(df))/1.7, seuil_na+5, 
+                 'Colonnes avec plus de %s%s missing values' %( seuil_na, '%'), 
+                 fontsize=12,weight='bold', color='crimson', ha='left' ,va='top')
+
+    ax.set_title(title,fontsize=20, weight='bold')
+    ax.set_xlabel('Colonnes',fontsize=20)
+    ax.set_ylabel('% de NaN',fontsize=20)
+    ax.set_xticklabels(df.columns,rotation=90)
+    
+plt.show()
+# ------------------------------------------------------------------------
+def graph_NAN(df,seuil_na=20,title='titre'):
+    """ Permet de mieux visualiser les % de NaN sur un nombre de colonne limité
+    Parametres
+    ----------
+    @param IN : df : dataframe
+                seuil : visualiser un ligne de seuil
+                debut : indice de la colonne de début de l'intervalle
+                fin   : indice de la dernière colonne a prendre en compte
+
+    """
+    plt.figure(figsize=(16,10))
     ax = plt.subplot(1,1,1)
     perc = (df.isnull().sum()/df.shape[0])*100
     
@@ -218,7 +241,7 @@ def search_componant(df, suffix='_100g'):
 # ---------------------------------------------------------------------------
 # -- INFORMATION SUR LES COLONNES
 # ---------------------------------------------------------------------------
-def info_colonne(df,colonne):
+def get_info_colonne(df,colonne):
     '''
     Présente les informations sur la colonne : unique, nunique, na%
     parametres
@@ -275,24 +298,43 @@ def info_list_colonnes(df,liste_col):
 
 # ---------------------------------------------------------------------------
 
-# --------------------------------------------------------------------
-# -- SUPRESSION VARIABLES SELON LE TAUX DE NAN (EN %)
-# --------------------------------------------------------------------
-def suppression_variable_seuil_taux_nan(dataframe, seuil):
+def stat_descriptives(dataframe, liste_variables):
     """
-    Supprime les variables à partir d'un taux en % de nan.
-    
+    Statistiques descriptives moyenne, mediane, variance, écart-type,
+    skewness et kurtosis du dataframe transmis en paramètre
+    ----------
+    @param IN : dataframe : DataFrame, obligatoire
+                liste_variables : colonne dont on veut voir les stat descr
+    @param OUT : dataframe des statistiques descriptives
     """
-    df_app_nan = round(
-        (dataframe.isna().sum() / dataframe.shape[0]) * 100, 2)
-    cols = dataframe.columns.tolist()
-    
-    cols_a_garder = df_app_nan[df_app_nan.values < seuil].index.tolist()
-    cols_supprimees = [col for col in cols if col not in cols_a_garder]
-    dataframe = dataframe[cols_a_garder]
-    print(f'Liste des variables éliminées :\n{cols_supprimees}\n')
-    print(f'Liste des variables conservées :\n{cols_a_garder}')
-    return dataframe
+    liste_mean = ['mean']
+    liste_median = ['median']
+    liste_var = ['var']
+    liste_std = ['std']
+    liste_skew = ['skew']
+    liste_kurtosis = ['kurtosis']
+    liste_mode = ['mode']
+    liste_cols = ['Desc']
+    liste_max = ['Max']
+    liste_min = ['Min']
+
+    for col in liste_variables:
+        liste_mean.append(dataframe[col].mean())
+        liste_median.append(dataframe[col].median())
+        liste_var.append(dataframe[col].var(ddof=0))
+        liste_std.append(dataframe[col].std(ddof=0))
+        liste_skew.append(dataframe[col].skew())
+        liste_kurtosis.append(dataframe[col].kurtosis())
+        liste_cols.append(col)
+        liste_mode.append(dataframe[col].mode().to_string())
+        liste_min.append(dataframe[col].min())
+        liste_max.append(dataframe[col].max())
+
+    data_stats = [liste_mean, liste_median, liste_var, liste_std, liste_skew,
+                  liste_kurtosis, liste_mode, liste_min, liste_max]
+    df_stat = pd.DataFrame(data_stats, columns=liste_cols)
+
+    return df_stat.style.hide_index()
 # ---------------------------------------------------------------------------
 
 
