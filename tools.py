@@ -11,6 +11,14 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 from IPython.display import display
+from wordcloud import WordCloud
+import matplotlib.patches as mpatches
+from matplotlib.collections import LineCollection
+from scipy.cluster.hierarchy import dendrogram
+
+from scipy.stats import shapiro, normaltest, anderson
+from scipy.stats import chi2_contingency
+from scipy.stats import chi2
 
 # ---------------------------------------------------------------------------
 # -- DESCRIPTION DU JEU DE DONNEES
@@ -251,7 +259,7 @@ def get_info_colonne(df,colonne):
     '''
     df_work = df[colonne]
     print(f"Colonne : {colonne}")
-    print(f"________")
+    print("________")
     print(f"Nombre de valeurs uniques : {df_work.nunique()}")
     print(f"NaN : {round(df_work.isnull().mean()*100,2)} %")
     print("--------")
@@ -335,7 +343,213 @@ def stat_descriptives(dataframe, liste_variables):
     df_stat = pd.DataFrame(data_stats, columns=liste_cols)
 
     return df_stat.style.hide_index()
-# ---------------------------------------------------------------------------
+
+# --------------------------------------------------------------------
+# -- PLAGE DE VALEURS MANQUANTES
+# --------------------------------------------------------------------
 
 
+def distribution_variables_plages_perc_donnees( dataframe, variable, liste_bins):
+    """
+    Retourne les plages des pourcentages des valeurs pour le découpage transmis
+    Parameters
+    ----------
+    dataframe : DataFrame, obligatoire
+    variable  : variable à découper obligatoire
+    liste_bins: liste des découpages facultatif int ou pintervallindex
+    
+    sortie : dataframe des plages de nan
+    """
+    nb_lignes = len(dataframe[variable])
+    s_gpe_cut = pd.cut(
+        dataframe[variable],
+        bins=liste_bins).value_counts().sort_index()
+    df_cut = pd.DataFrame({'Plage': s_gpe_cut.index,
+                           'nb_données': s_gpe_cut.values})
+    df_cut['%_données'] = [
+        (row * 100) / nb_lignes for row in df_cut['nb_données']]
+
+    return df_cut.style.hide_index()
+
+# --------------------------------------------------------------------
+
+# --------------------------------------------------------------------
+# -- WORDCLOUD + TABLEAU DE FREQUENCE
+# --------------------------------------------------------------------
+
+
+def affiche_wordcloud_tabfreq(
+        dataframe,
+        variable,
+        nom,
+        affword=True,
+        affgraph=True,
+        afftabfreq=True,
+        nb_lignes=10):
+    """
+    Affiche les 'noms' les plus fréquents (wordcloud) et le tableau de fréquence (10 1ères lignes)
+    ----------
+    @param IN : dataframe : DataFrame, obligatoire
+                variable : variable dont on veut voir la fréquence obligatoire
+                nom : text affiché dans le tableau de fréquence obligatoire
+                nb_lignes : nombre de lignes affichées dans le tab des fréquences facultatives
+                affword : booléen : affiche le wordcloud ?
+                affgraph : booléen : affiche le graphique de répartition en pourcentage ?
+                afftabfreq : booléen : affiche le tableau des fréquences ?
+    @param OUT : None
+    """
+    # Préparation des variables de travail
+    dico = dataframe.groupby(variable)[variable].count(
+    ).sort_values(ascending=False).to_dict()
+    col1 = 'Nom_' + nom
+    col2 = 'Nbr_' + nom
+    col3 = 'Fréquence (%)'
+    df_gpe = pd.DataFrame(dico.items(), columns=[col1, col2])
+    df_gpe[col3] = (df_gpe[col2] * 100) / len(dataframe)
+    df_gp_red = df_gpe.head(nb_lignes)
+
+    if affword:
+        # affiche le wordcloud
+        wordcloud = WordCloud(
+            width=800,
+            height=400,
+            background_color="white",
+            max_words=100).generate_from_frequencies(dico)
+        plt.figure(figsize=(12, 10))
+        plt.imshow(wordcloud, interpolation='bilinear')
+        plt.axis("off")
+        plt.show()
+
+    if affgraph:
+        # Barplot de répartition
+        sns.set_style("whitegrid")
+        plt.figure(figsize=(8, 4))
+        sns.barplot(
+            y=df_gp_red[col1],
+            x=df_gp_red[col3],
+            data=df_gp_red,
+            color='SteelBlue')
+        plt.title('Répartition du nombre de ' + nom)
+        plt.grid(False)
+        plt.tight_layout()
+        plt.show()
+
+    if afftabfreq:
+        # affiche le tableau des fréquences
+        display(df_gp_red.style.hide_index())
+
 # ---------------------------------------------------------------------------
+
+# --------------------------------------------------------------------
+# -- ACP
+# --------------------------------------------------------------------
+
+def display_circles(pcs, n_comp, pca, axis_ranks, labels=None, label_rotation=0, lims=None):
+    for d1, d2 in axis_ranks: # On affiche les 3 premiers plans factoriels, donc les 6 premières composantes
+        if d2 < n_comp:
+
+            # initialisation de la figure
+            fig, ax = plt.subplots(figsize=(8,8))
+
+            # détermination des limites du graphique
+            if lims is not None :
+                xmin, xmax, ymin, ymax = lims
+            elif pcs.shape[1] < 30 :
+                xmin, xmax, ymin, ymax = -1, 1, -1, 1
+            else :
+                xmin, xmax, ymin, ymax = min(pcs[d1,:]), max(pcs[d1,:]), min(pcs[d2,:]), max(pcs[d2,:])
+
+            # affichage des flèches
+            # s'il y a plus de 30 flèches, on n'affiche pas le triangle à leur extrémité
+            if pcs.shape[1] < 30 :
+                plt.quiver(np.zeros(pcs.shape[1]), np.zeros(pcs.shape[1]),
+                   pcs[d1,:], pcs[d2,:], 
+                   angles='xy', scale_units='xy', scale=1, color="grey")
+                # (voir la doc : https://matplotlib.org/api/_as_gen/matplotlib.pyplot.quiver.html)
+            else:
+                lines = [[[0,0],[x,y]] for x,y in pcs[[d1,d2]].T]
+                ax.add_collection(LineCollection(lines, axes=ax, alpha=.1, color='black'))
+            
+            # affichage des noms des variables  
+            if labels is not None:  
+                for i,(x, y) in enumerate(pcs[[d1,d2]].T):
+                    if x >= xmin and x <= xmax and y >= ymin and y <= ymax :
+                        plt.text(x, y, labels[i], fontsize='11', ha='center', va='center', rotation=label_rotation, color="blue", alpha=0.5)
+            
+            # affichage du cercle
+            circle = plt.Circle((0,0), 1, facecolor='none', edgecolor='b')
+            plt.gca().add_artist(circle)
+
+            # définition des limites du graphique
+            plt.xlim(xmin, xmax)
+            plt.ylim(ymin, ymax)
+        
+            # affichage des lignes horizontales et verticales
+            plt.plot([-1, 1], [0, 0], color='grey', ls='--')
+            plt.plot([0, 0], [-1, 1], color='grey', ls='--')
+
+            # nom des axes, avec le pourcentage d'inertie expliqué
+            plt.xlabel('F{} ({}%)'.format(d1+1, round(100*pca.explained_variance_ratio_[d1],1)))
+            plt.ylabel('F{} ({}%)'.format(d2+1, round(100*pca.explained_variance_ratio_[d2],1)))
+
+            plt.title("Cercle des corrélations (F{} et F{})".format(d1+1, d2+1))
+            plt.show(block=False)
+        
+def display_factorial_planes(X_projected, n_comp, pca, axis_ranks, labels=None, alpha=1, illustrative_var=None):
+    for d1,d2 in axis_ranks:
+        if d2 < n_comp:
+ 
+            # initialisation de la figure       
+            fig = plt.figure(figsize=(7,6))
+        
+            # affichage des points
+            if illustrative_var is None:
+                plt.scatter(X_projected[:, d1], X_projected[:, d2], alpha=alpha)
+            else:
+                illustrative_var = np.array(illustrative_var)
+                for value in np.unique(illustrative_var):
+                    selected = np.where(illustrative_var == value)
+                    plt.scatter(X_projected[selected, d1], X_projected[selected, d2], alpha=alpha, label=value)
+                plt.legend()
+
+            # affichage des labels des points
+            if labels is not None:
+                for i,(x,y) in enumerate(X_projected[:,[d1,d2]]):
+                    plt.text(x, y, labels[i],
+                              fontsize='8', ha='center',va='center') 
+                
+            # détermination des limites du graphique
+            boundary = np.max(np.abs(X_projected[:, [d1,d2]])) * 1.1
+            plt.xlim([-boundary,boundary])
+            plt.ylim([-boundary,boundary])
+        
+            # affichage des lignes horizontales et verticales
+            plt.plot([-100, 100], [0, 0], color='grey', ls='--')
+            plt.plot([0, 0], [-100, 100], color='grey', ls='--')
+
+            # nom des axes, avec le pourcentage d'inertie expliqué
+            plt.xlabel('F{} ({}%)'.format(d1+1, round(100*pca.explained_variance_ratio_[d1],1)))
+            plt.ylabel('F{} ({}%)'.format(d2+1, round(100*pca.explained_variance_ratio_[d2],1)))
+
+            plt.title("Projection des individus (sur F{} et F{})".format(d1+1, d2+1))
+            plt.show(block=False)
+
+def display_scree_plot(pca):
+    scree = pca.explained_variance_ratio_*100
+    plt.bar(np.arange(len(scree))+1, scree)
+    plt.plot(np.arange(len(scree))+1, scree.cumsum(),c="red",marker='o')
+    plt.xlabel("rang de l'axe d'inertie")
+    plt.ylabel("pourcentage d'inertie")
+    plt.title("Eboulis des valeurs propres")
+    plt.show(block=False)
+
+def plot_dendrogram(Z, names):
+    plt.figure(figsize=(10,25))
+    plt.title('Hierarchical Clustering Dendrogram')
+    plt.xlabel('distance')
+    dendrogram(
+        Z,
+        labels = names,
+        orientation = "left",
+    )
+    plt.show()
