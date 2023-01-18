@@ -553,3 +553,23 @@ def plot_dendrogram(Z, names):
         orientation = "left",
     )
     plt.show()
+#------------------------------------------------------------------------------
+
+def plot_world_cloud(df,column="main_category_fr",nb_top=100):
+    '''
+    Fonction qui permet affiche le top (defini de la colonne définie) 
+    '''
+    fig = plt.figure(1, figsize=(20,15))
+    ax1 = fig.add_subplot(1,1,1)
+
+    words = dict()
+    trunc_occurences = top_words(df=df, column=column, nb_top=nb_top)
+    for s in trunc_occurences:
+        words[s[0]] = s[1]
+
+    word_cloud = WordCloud(width=900,height=500, normalize_plurals=False, background_color="white")
+    word_cloud.generate_from_frequencies(words)
+    ax1.imshow(word_cloud, interpolation="bilinear")
+    ax1.axis('off')
+    plt.title("Nuage de mots des {} meilleures {}\n".format(nb_top, column), fontsize=22,fontweight='bold')
+    plt.show()
